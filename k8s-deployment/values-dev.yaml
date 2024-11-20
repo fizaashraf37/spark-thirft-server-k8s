@@ -1,0 +1,18 @@
+nameOverride: airflow-proxy
+
+service:
+  name: spark-thrift-server-service
+  namespace: poc
+  thriftServerPort: 10000
+  sparkDriverPort: 7078
+
+server:
+  name: spark-thrift-server
+  namespace: poc
+  serviceAccountName: airflow
+  replicaCount: 1
+  container:
+    name: thrift-server
+    image: <account_id>.dkr.ecr.us-east-1.amazonaws.com/poc/kt-python:spark-3.3.3-bin-hadoop3
+    driverPodName: spark-thrift-server-0
+  iamRole: arn:aws:iam::<account_id>:role/data-spark-thrift-server-poc-staging

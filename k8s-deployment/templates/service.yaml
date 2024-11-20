@@ -1,0 +1,21 @@
+# This YAML file will create a headless service in data namespace.
+# The Service in Kubernetes is crucial for the Spark Thrift Server as it enables network access within the cluster.
+# and also allows Spark executors to connect to the Spark driver over a routable hostname and port
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{.Values.service.namespace}}
+  name: {{.Values.service.name}}
+spec:
+  clusterIP: None
+  selector:
+    app: spark-thrift-server
+  ports:
+    - name: thrift-server-port
+      protocol: TCP
+      port: {{.Values.service.thriftServerPort}}
+      targetPort: {{.Values.service.thriftServerPort}}
+    - protocol: TCP
+      name: spark-driver-port
+      port: {{.Values.service.sparkDriverPort}}
+      targetPort: {{.Values.service.sparkDriverPort}}

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: {{.Values.server.namespace}}
+  name: {{.Values.server.name}}
+spec:
+  serviceName: {{.Values.service.name}}
+  replicas: {{.Values.server.replicaCount}}
+  selector:
+    matchLabels:
+      app: spark-thrift-server
+  template:
+    metadata:
+      namespace: {{.Values.server.namespace}}
+      labels:
+        app: spark-thrift-server
+      annotations:
+        iam.amazonaws.com/role: {{.Values.server.iamRole}}
+    spec:
+      serviceAccountName: {{.Values.server.serviceAccountName}}
+      containers:
+        - name: thrift-server
+          image: {{.Values.server.container.image}}
+          command:
+            - 'bash'
+            - '-c'
+            - >-
+              /opt/spark/sbin/start-thriftserver.sh
+              --master k8s://https://kubernetes.default.svc.cluster.local.
+              --deploy-mode client
+              --conf spark.driver.extraJavaOptions="-Divy.cache.dir=/tmp -Divy.home=/tmp"
+              --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+              --conf spark.sql.defaultCatalog=iceberg_catalog
+              --conf spark.sql.catalog.iceberg_catalog=org.apache.iceberg.spark.SparkCatalog
+              --conf spark.sql.catalog.iceberg_catalog.warehouse=s3://bucket-staging/iceberg/
+              --conf spark.sql.catalog.iceberg_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog
+              --conf spark.sql.catalog.iceberg_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO
+              --conf spark.kubernetes.container.image={{.Values.server.container.image}}
+              --conf spark.kubernetes.driver.pod.name={{.Values.server.container.driverPodName}}
+              --conf spark.kubernetes.authenticate.driver.serviceAccountName={{.Values.server.serviceAccountName}}
+              --conf spark.kubernetes.executor.annotation.iam.amazonaws.com/role={{.Values.server.iamRole}}
+              --conf spark.kubernetes.namespace={{.Values.server.namespace}}
+              --conf spark.driver.host={{.Values.service.name}}
+              --conf spark.driver.port={{.Values.service.sparkDriverPort}}
+              --conf spark.driver.maxResultSize=4g
+              --conf spark.driver.memory=8g
+              --conf spark.executor.memory=10g
+              && tail -f /dev/null
